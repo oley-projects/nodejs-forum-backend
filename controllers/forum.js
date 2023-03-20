@@ -1,3 +1,7 @@
+const { validationResult } = require('express-validator');
+
+const Topic = require('../models/topic');
+
 exports.getCategories = (req, res, next) => {
   res.status(200).json({
     categories: [
@@ -37,20 +41,32 @@ exports.getTopics = (req, res, next) => {
 };
 
 exports.createTopic = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({
+      message: 'Validation failed, invalid data.',
+      errors: errors.array(),
+    });
+  }
   const name = req.body.name;
   const description = req.body.description;
-  res.status(201).json({
-    message: 'Topic created!',
-    topic: {
-      id: new Date().getTime(),
-      name,
-      description,
-      createdUser: 'User',
-      createdAt: new Date().toLocaleString(),
-      replies: '0',
-      views: '0',
-      lastPostUser: 'User',
-      lastPostCreatedAt: new Date().toLocaleString(),
-    },
+  const topic = new Topic({
+    name,
+    description,
+    createdUser: 'User',
+    replies: '0',
+    views: '0',
+    lastPostUser: 'User',
+    lastPostCreatedAt: new Date().toLocaleString(),
   });
+  topic
+    .save()
+    .then((result) => {
+      console.log(result);
+      res.status(201).json({
+        message: 'Topic created!',
+        topic: result,
+      });
+    })
+    .catch();
 };

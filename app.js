@@ -1,5 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const dotenvConf = require('dotenv').config();
+const MONGODB_URI = dotenvConf.parsed.MONGODB_URI;
 
 const forumRoutes = require('./routes/forum');
 
@@ -19,4 +22,9 @@ app.use((req, res, next) => {
 
 app.use('/forum', forumRoutes);
 
-app.listen(8080);
+mongoose
+  .connect(MONGODB_URI)
+  .then((result) => {
+    app.listen(8080);
+  })
+  .catch((err) => console.log(err));

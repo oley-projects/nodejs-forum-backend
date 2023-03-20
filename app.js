@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 
-const forumRoutes = require('./routes/feed');
+const forumRoutes = require('./routes/forum');
 
 const app = express();
 

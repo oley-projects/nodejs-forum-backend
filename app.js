@@ -22,6 +22,11 @@ app.use((req, res, next) => {
 
 app.use('/forum', forumRoutes);
 
+app.use((error, req, res, next) => {
+  const { statusCode = 500, message } = error;
+  res.status(statusCode).json({ message });
+});
+
 mongoose
   .connect(MONGODB_URI)
   .then((result) => {

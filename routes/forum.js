@@ -16,5 +16,6 @@ router.post(
   ],
   forumController.createTopic
 );
+router.get('topic/:topicId', forumController.getTopic);
 
 module.exports = router;

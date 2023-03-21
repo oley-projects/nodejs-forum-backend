@@ -16,7 +16,11 @@ const topicSchema = new Schema(
 
 topicSchema.set('toJSON', {
   transform: (document, returnedObject) => {
+    const createdAt = returnedObject.createdAt;
+    const updatedAt = returnedObject.updatedAt;
     returnedObject.id = returnedObject._id.toString();
+    returnedObject.createdAt = new Date(createdAt).toLocaleString();
+    returnedObject.updatedAt = new Date(updatedAt).toLocaleString();
     delete returnedObject._id;
     delete returnedObject.__v;
   },

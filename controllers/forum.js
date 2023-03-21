@@ -11,42 +11,23 @@ exports.getCategories = (req, res, next) => {
   });
 };
 
-exports.getTopics = (req, res, next) => {
-  res.status(200).json({
-    topics: [
-      {
-        id: 1,
-        name: 'Topic 1',
-        description: '',
-        createdUser: 'User',
-        createdAt: new Date().toLocaleString(),
-        replies: '3',
-        views: '12',
-        lastPostUser: 'User 1',
-        lastPostCreatedAt: new Date().toLocaleString(),
-      },
-      {
-        id: 2,
-        name: 'Topic 2',
-        description: 'Topic Description',
-        createdUser: 'User2',
-        createdAt: new Date().toLocaleString(),
-        replies: '2',
-        views: '21',
-        lastPostUser: 'User',
-        lastPostCreatedAt: new Date().toLocaleString(),
-      },
-    ],
-  });
+exports.getTopics = async (req, res, next) => {
+  try {
+    const topics = await Topic.find();
+    res.status(200).json({ topics });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+  }
 };
 
-exports.createTopic = (req, res, next) => {
+exports.createTopic = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(422).json({
-      message: 'Validation failed, invalid data.',
-      errors: errors.array(),
-    });
+    const error = new Error('Validation failed, invalid data.');
+    error.statusCode = 422;
+    throw error;
   }
   const name = req.body.name;
   const description = req.body.description;
@@ -59,14 +40,34 @@ exports.createTopic = (req, res, next) => {
     lastPostUser: 'User',
     lastPostCreatedAt: new Date().toLocaleString(),
   });
-  topic
-    .save()
-    .then((result) => {
-      console.log(result);
-      res.status(201).json({
-        message: 'Topic created!',
-        topic: result,
-      });
-    })
-    .catch();
+  try {
+    await topic.save();
+    res.status(201).json({
+      message: 'Topic created!',
+      topic,
+    });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+};
+
+exports.getTopic = async (req, res, next) => {
+  const topicId = req.params.topicId;
+  try {
+    const topic = await Topic.findById(topicId);
+    if (!topic) {
+      const error = new Error('Could not find topic.');
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({ topic });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
 };

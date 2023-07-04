@@ -18,6 +18,7 @@ router.post(
 );
 router.get('topic/:topicId', forumController.getTopic);
 
+// PUT /topic/id
 router.put(
   'topic/:topicId',
   [

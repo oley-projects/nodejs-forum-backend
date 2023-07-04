@@ -18,4 +18,13 @@ router.post(
 );
 router.get('topic/:topicId', forumController.getTopic);
 
+router.put(
+  'topic/:topicId',
+  [
+    body('name').trim().isLength({ min: 3, max: 40 }),
+    body('description').trim().isLength({ min: 5, max: 200 }),
+  ],
+  forumController.updatePost
+);
+
 module.exports = router;

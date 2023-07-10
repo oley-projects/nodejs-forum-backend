@@ -5,7 +5,6 @@ const forumController = require('../controllers/forum');
 
 const router = express.Router();
 
-// GET /forum/categories
 router.get('/categories', forumController.getCategories);
 router.get('/topics', forumController.getTopics);
 router.post(
@@ -18,7 +17,6 @@ router.post(
 );
 router.get('/topic/:topicId', forumController.getTopic);
 
-// PUT /topic/id
 router.put(
   '/topic/:topicId',
   [
@@ -27,5 +25,7 @@ router.put(
   ],
   forumController.updateTopic
 );
+
+router.delete('/topic/:topicId', forumController.deleteTopic);
 
 module.exports = router;

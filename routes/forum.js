@@ -16,16 +16,16 @@ router.post(
   ],
   forumController.createTopic
 );
-router.get('topic/:topicId', forumController.getTopic);
+router.get('/topic/:topicId', forumController.getTopic);
 
 // PUT /topic/id
 router.put(
-  'topic/:topicId',
+  '/topic/:topicId',
   [
     body('name').trim().isLength({ min: 3, max: 40 }),
     body('description').trim().isLength({ min: 5, max: 200 }),
   ],
-  forumController.updatePost
+  forumController.updateTopic
 );
 
 module.exports = router;

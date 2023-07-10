@@ -57,7 +57,7 @@ exports.createTopic = async (req, res, next) => {
 exports.getTopic = async (req, res, next) => {
   const topicId = req.params.topicId;
   try {
-    const topic = await Topic.findById(topicId);
+    const topic = await Topic.findOne({ id: topicId });
     if (!topic) {
       const error = new Error('Could not find topic.');
       error.statusCode = 404;
@@ -72,8 +72,8 @@ exports.getTopic = async (req, res, next) => {
   }
 };
 
-exports.updatePost = async (req, res, next) => {
-  const topicId = req.params.topicId;
+exports.updateTopic = async (req, res, next) => {
+  const id = req.params.topicId;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, invalid data.');
@@ -82,7 +82,7 @@ exports.updatePost = async (req, res, next) => {
   }
   const { name, description } = req.body;
   try {
-    const topic = await Topic.findById(topicId);
+    const topic = await Topic.findOne({ id });
     if (!topic) {
       const error = new Error('Could not find topic.');
       error.statusCode = 404;
@@ -91,7 +91,7 @@ exports.updatePost = async (req, res, next) => {
     topic.name = name;
     topic.description = description;
     await topic.save();
-    res.status(200).json({ message: 'Post updated!', post });
+    res.status(200).json({ message: 'Post updated!', topic });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

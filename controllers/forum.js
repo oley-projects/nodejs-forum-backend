@@ -12,9 +12,15 @@ exports.getCategories = (req, res, next) => {
 };
 
 exports.getTopics = async (req, res, next) => {
+  const currentPage = req.query.page || 1;
+  const perPage = 10;
+  let totalItems;
   try {
-    const topics = await Topic.find();
-    res.status(200).json({ topics });
+    totalItems = await Topic.find().countDocuments();
+    const topics = await Topic.find()
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
+    res.status(200).json({ topics, totalItems });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;
@@ -91,7 +97,7 @@ exports.updateTopic = async (req, res, next) => {
     topic.name = name;
     topic.description = description;
     await topic.save();
-    res.status(200).json({ message: 'Post updated!', topic });
+    res.status(200).json({ message: 'Topic updated!', topic });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;
@@ -110,7 +116,7 @@ exports.deleteTopic = async (req, res, next) => {
       throw error;
     }
     await Topic.findOneAndDelete({ id: topicId });
-    res.status(200).json({ message: 'Post was deleted.' });
+    res.status(200).json({ message: 'Topic was deleted.' });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

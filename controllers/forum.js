@@ -13,10 +13,16 @@ exports.getCategories = (req, res, next) => {
 
 exports.getTopics = async (req, res, next) => {
   const currentPage = req.query.page || 1;
-  const perPage = 10;
-  let totalItems;
+  const limit = req.query.limit;
+  let totalItems = 0;
+  let perPage = 10;
   try {
     totalItems = await Topic.find().countDocuments();
+    if (limit > 0 && limit < 100) {
+      perPage = limit;
+    } else if (limit === '-1' && totalItems < 100) {
+      perPage = totalItems;
+    }
     const topics = await Topic.find()
       .skip((currentPage - 1) * perPage)
       .limit(perPage);

@@ -6,6 +6,7 @@ const dotenvConf = require('dotenv').config();
 const MONGODB_URI = dotenvConf.parsed.MONGODB_URI;
 
 const forumRoutes = require('./routes/forum');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -14,10 +15,11 @@ app.use(bodyParser.json());
 app.use(cors());
 
 app.use('/forum', forumRoutes);
+app.use('/auth', authRoutes);
 
 app.use((error, req, res, next) => {
-  const { statusCode = 500, message } = error;
-  res.status(statusCode).json({ message });
+  const { statusCode = 500, message, data } = error;
+  res.status(statusCode).json({ message, data });
 });
 
 mongoose

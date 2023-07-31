@@ -107,6 +107,11 @@ exports.updateTopic = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
+    if (topic.creator.toString() !== req.userId) {
+      const error = new Error('Not authorized.');
+      error.statusCode = 403;
+      throw error;
+    }
     topic.name = name;
     topic.description = description;
     await topic.save();
@@ -126,6 +131,11 @@ exports.deleteTopic = async (req, res, next) => {
     if (!topic) {
       const error = new Error('Could not find topic.');
       error.statusCode = 404;
+      throw error;
+    }
+    if (topic.creator.toString() !== req.userId) {
+      const error = new Error('Not authorized.');
+      error.statusCode = 403;
       throw error;
     }
     await Topic.findOneAndDelete({ id: topicId });

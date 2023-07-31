@@ -21,6 +21,7 @@ router.get('/topic/:topicId', forumController.getTopic);
 
 router.put(
   '/topic/:topicId',
+  isAuth,
   [
     body('name').trim().isLength({ min: 3, max: 40 }),
     body('description').trim().isLength({ min: 5, max: 200 }),
@@ -28,6 +29,6 @@ router.put(
   forumController.updateTopic
 );
 
-router.delete('/topic/:topicId', forumController.deleteTopic);
+router.delete('/topic/:topicId', isAuth, forumController.deleteTopic);
 
 module.exports = router;

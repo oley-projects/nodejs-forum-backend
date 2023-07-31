@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 
 const Topic = require('../models/topic');
+const User = require('../models/user');
 
 exports.getCategories = (req, res, next) => {
   res.status(200).json({
@@ -43,10 +44,11 @@ exports.createTopic = async (req, res, next) => {
   }
   const name = req.body.name;
   const description = req.body.description;
+  let creator;
   const topic = new Topic({
     name,
     description,
-    createdUser: 'User',
+    creator: req.userId,
     replies: '0',
     views: '0',
     lastPostUser: 'User',
@@ -54,9 +56,14 @@ exports.createTopic = async (req, res, next) => {
   });
   try {
     await topic.save();
+    const user = await User.findById(req.userId);
+    creator = user;
+    user.topics.push(topic);
+    await user.save();
     res.status(201).json({
       message: 'Topic created!',
       topic,
+      creator: { _id: creator._id, name: creator.name },
     });
   } catch (error) {
     if (!error.statusCode) {

@@ -26,7 +26,7 @@ exports.signup = (req, res, next) => {
       return user.save();
     })
     .then((result) =>
-      res.status(201).json({ message: 'User created.,', id: result._id })
+      res.status(201).json({ message: 'User created.', userId: result._id })
     )
     .catch((error) => {
       if (!error.statusCode) {
@@ -58,13 +58,11 @@ exports.login = async (req, res, next) => {
       TOKEN_KEY,
       { expiresIn: '12h' }
     );
-    res
-      .status(200)
-      .json({
-        token,
-        userId: loadedUser._id.toString(),
-        email: loadedUser.email,
-      });
+    res.status(200).json({
+      token,
+      userId: loadedUser._id.toString(),
+      email: loadedUser.email,
+    });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

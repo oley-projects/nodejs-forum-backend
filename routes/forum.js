@@ -10,6 +10,7 @@ router.get('/categories', forumController.getCategories);
 router.get('/topics', forumController.getTopics);
 router.post(
   '/topic',
+  isAuth,
   [
     body('name').trim().isLength({ min: 3, max: 40 }),
     body('description').trim().isLength({ min: 5, max: 200 }),

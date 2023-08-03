@@ -33,7 +33,6 @@ topicSchema.set('toJSON', {
     const updatedAt = returnedObject.updatedAt;
     returnedObject.createdAt = new Date(createdAt).toLocaleString();
     returnedObject.updatedAt = new Date(updatedAt).toLocaleString();
-    delete returnedObject._id;
   },
 });
 

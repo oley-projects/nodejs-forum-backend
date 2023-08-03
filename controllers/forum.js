@@ -125,7 +125,8 @@ exports.updateTopic = async (req, res, next) => {
 };
 
 exports.deleteTopic = async (req, res, next) => {
-  const topicId = req.params.topicId;
+  const { topicId } = req.params;
+  const { objectId } = req.body;
   try {
     const topic = await Topic.findOne({ id: topicId });
     if (!topic) {
@@ -139,6 +140,9 @@ exports.deleteTopic = async (req, res, next) => {
       throw error;
     }
     await Topic.findOneAndDelete({ id: topicId });
+    const user = await User.findById(req.userId);
+    user.topics.pull(objectId);
+    await user.save();
     res.status(200).json({ message: 'Topic was deleted.' });
   } catch (error) {
     if (!error.statusCode) {

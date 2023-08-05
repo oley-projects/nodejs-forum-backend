@@ -9,7 +9,11 @@ const topicSchema = new Schema(
     name: { type: String, required: true, unique: true },
     slug: { type: String },
     description: { type: String, required: true },
-    creator: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    creator: {
+      _id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+      name: { type: String, ref: 'User', required: true },
+    },
+    email: { type: Schema.Types.String, ref: 'User' },
     replies: { type: String, required: true },
     views: { type: String, required: true },
     lastPostUser: { type: String, required: true },

@@ -48,18 +48,20 @@ exports.createTopic = async (req, res, next) => {
   const topic = new Topic({
     name,
     description,
-    creator: req.userId,
+    creator: { _id: req.userId, name: req.userName },
     replies: '0',
     views: '0',
     lastPostUser: 'User',
     lastPostCreatedAt: new Date().toLocaleString(),
   });
   try {
-    await topic.save();
     const user = await User.findById(req.userId);
     creator = user;
     user.topics.push(topic);
     await user.save();
+
+    await topic.save();
+
     res.status(201).json({
       message: 'Topic created!',
       topic,

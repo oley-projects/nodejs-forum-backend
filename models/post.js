@@ -3,7 +3,7 @@ const slugify = require('slugify');
 const Counter = require('./counter');
 const Schema = mongoose.Schema;
 
-const topicSchema = new Schema(
+const postSchema = new Schema(
   {
     id: { type: String },
     name: { type: String, required: true, unique: true },
@@ -13,30 +13,23 @@ const topicSchema = new Schema(
       _id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
       name: { type: String, ref: 'User', required: true },
     },
-    posts: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'Post',
-      },
-    ],
+    topic: { type: Schema.Types.ObjectId, ref: 'Topic', required: true },
     replies: { type: String, required: true },
     views: { type: String, required: true },
-    lastPostUser: { type: String, required: true },
-    lastPostCreatedAt: { type: String, required: true },
   },
   { timestamps: true, versionKey: false }
 );
 
-topicSchema.pre('save', async function () {
+postSchema.pre('save', async function () {
   const doc = this;
   doc.slug = await slugify(doc.name);
   if (!this.isNew) return;
 
-  const topicID = await Counter.increment('topicID');
-  this.id = topicID;
+  const postID = await Counter.increment('postID');
+  this.id = postID;
 });
 
-topicSchema.set('toJSON', {
+postSchema.set('toJSON', {
   transform: (document, returnedObject) => {
     const createdAt = returnedObject.createdAt;
     const updatedAt = returnedObject.updatedAt;
@@ -45,4 +38,4 @@ topicSchema.set('toJSON', {
   },
 });
 
-module.exports = mongoose.model('Topic', topicSchema);
+module.exports = mongoose.model('Post', postSchema);

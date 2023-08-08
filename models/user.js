@@ -29,6 +29,12 @@ const userSchema = new Schema(
         ref: 'Topic',
       },
     ],
+    posts: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Post',
+      },
+    ],
   },
   { timestamps: true, versionKey: false }
 );

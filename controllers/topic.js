@@ -1,33 +1,25 @@
 const { validationResult } = require('express-validator');
 
+const Post = require('../models/post');
 const Topic = require('../models/topic');
 const User = require('../models/user');
 
-exports.getCategories = (req, res, next) => {
-  res.status(200).json({
-    categories: [
-      { id: 1, name: 'main' },
-      { id: 2, name: 'addition' },
-    ],
-  });
-};
-
-exports.getTopics = async (req, res, next) => {
+exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
   const limit = req.query.limit;
   let totalItems = 0;
   let perPage = 10;
   try {
-    totalItems = await Topic.find().countDocuments();
+    totalItems = await Post.find().countDocuments();
     if (limit > 0 && limit < 100) {
       perPage = limit;
     } else if (limit === '-1' && totalItems < 100) {
       perPage = totalItems;
     }
-    const topics = await Topic.find()
+    const posts = await Post.find()
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
-    res.status(200).json({ topics, totalItems });
+    res.status(200).json({ posts, totalItems });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;
@@ -35,7 +27,7 @@ exports.getTopics = async (req, res, next) => {
   }
 };
 
-exports.createTopic = async (req, res, next) => {
+exports.createPost = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, invalid data.');
@@ -43,28 +35,31 @@ exports.createTopic = async (req, res, next) => {
     throw error;
   }
   const { name, description } = req.body;
+  const { topicId } = req.params;
   let creator;
-  const topic = new Topic({
+  const post = new Post({
     name,
     description,
     creator: { _id: req.userId, name: req.userName },
-    posts: [],
+    topic: topicId,
     replies: '0',
     views: '0',
-    lastPostUser: 'User',
-    lastPostCreatedAt: new Date().toLocaleString(),
   });
   try {
     const user = await User.findById(req.userId);
     creator = user;
-    user.topics.push(topic);
+    user.posts.push(post);
     await user.save();
 
+    const topic = await Topic.findOne({ id: topicId });
+    topic.posts.push(post);
     await topic.save();
 
+    await post.save();
+
     res.status(201).json({
-      message: 'Topic created!',
-      topic,
+      message: 'Post created!',
+      post,
       creator: { _id: creator._id, name: creator.name },
     });
   } catch (error) {
@@ -75,16 +70,16 @@ exports.createTopic = async (req, res, next) => {
   }
 };
 
-exports.getTopic = async (req, res, next) => {
-  const topicId = req.params.topicId;
+exports.getPost = async (req, res, next) => {
+  const postId = req.params.postId;
   try {
-    const topic = await Topic.findOne({ id: topicId });
-    if (!topic) {
-      const error = new Error('Could not find topic.');
+    const post = await Post.findOne({ id: postId });
+    if (!post) {
+      const error = new Error('Could not find post.');
       error.statusCode = 404;
       throw error;
     }
-    res.status(200).json({ topic });
+    res.status(200).json({ post });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;
@@ -93,8 +88,8 @@ exports.getTopic = async (req, res, next) => {
   }
 };
 
-exports.updateTopic = async (req, res, next) => {
-  const topicId = req.params.topicId;
+exports.updatePost = async (req, res, next) => {
+  const postId = req.params.postId;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, invalid data.');
@@ -103,21 +98,21 @@ exports.updateTopic = async (req, res, next) => {
   }
   const { name, description } = req.body;
   try {
-    const topic = await Topic.findOne({ id: topicId });
-    if (!topic) {
-      const error = new Error('Could not find topic.');
+    const post = await Post.findOne({ id: postId });
+    if (!post) {
+      const error = new Error('Could not find post.');
       error.statusCode = 404;
       throw error;
     }
-    if (topic.creator.toString() !== req.userId) {
+    if (post.creator.toString() !== req.userId) {
       const error = new Error('Not authorized.');
       error.statusCode = 403;
       throw error;
     }
-    topic.name = name;
-    topic.description = description;
-    await topic.save();
-    res.status(200).json({ message: 'Topic updated!', topic });
+    post.name = name;
+    post.description = description;
+    await post.save();
+    res.status(200).json({ message: 'Post updated!', post });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;
@@ -126,25 +121,27 @@ exports.updateTopic = async (req, res, next) => {
   }
 };
 
-exports.deleteTopic = async (req, res, next) => {
-  const { topicId } = req.params;
+exports.deletePost = async (req, res, next) => {
+  const { postId, topicId } = req.params;
   try {
-    const topic = await Topic.findOne({ id: topicId });
-    if (!topic) {
-      const error = new Error('Could not find topic.');
+    const post = await Post.findOne({ id: postId });
+    if (!post) {
+      const error = new Error('Could not find post.');
       error.statusCode = 404;
       throw error;
     }
-    if (topic.creator._id.toString() !== req.userId) {
+    if (post.creator._id.toString() !== req.userId) {
       const error = new Error('Not authorized.');
       error.statusCode = 403;
       throw error;
     }
-    await Topic.findOneAndDelete({ id: topicId });
+    await Post.findOneAndDelete({ id: postId });
     const user = await User.findById(req.userId);
-    user.topics.pull(topic._id.toString());
+    user.posts.pull(post._id.toString());
     await user.save();
-    res.status(200).json({ message: 'Topic was deleted.' });
+    const topic = await Topic.findOneAndDelete({ id: topicId });
+    topic.posts.pull(topic._id.toString());
+    res.status(200).json({ message: 'Post was deleted.' });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

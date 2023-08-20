@@ -10,10 +10,7 @@ router.get('/posts', topicController.getPosts);
 router.post(
   '/post',
   isAuth,
-  [
-    body('name').trim().isLength({ min: 3, max: 40 }),
-    body('description').trim().isLength({ min: 5, max: 200 }),
-  ],
+  [body('description').trim().isLength({ min: 5, max: 200 })],
   topicController.createPost
 );
 router.get('/post/:postId', topicController.getPost);
@@ -21,10 +18,7 @@ router.get('/post/:postId', topicController.getPost);
 router.put(
   '/post/:postId',
   isAuth,
-  [
-    body('name').trim().isLength({ min: 3, max: 40 }),
-    body('description').trim().isLength({ min: 5, max: 200 }),
-  ],
+  [body('description').trim().isLength({ min: 5, max: 200 })],
   topicController.updatePost
 );
 

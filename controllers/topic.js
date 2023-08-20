@@ -34,28 +34,36 @@ exports.createPost = async (req, res, next) => {
     error.statusCode = 422;
     throw error;
   }
-  const { name, description } = req.body;
-  const { topicId } = req.params;
+  const { id, name, description } = req.body;
   let creator;
+  let topic;
+
+  try {
+    topic = await Topic.findOne({ id });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+
   const post = new Post({
     name,
     description,
     creator: { _id: req.userId, name: req.userName },
-    topic: topicId,
+    topic: topic._id,
     replies: '0',
     views: '0',
   });
   try {
+    await post.save();
     const user = await User.findById(req.userId);
     creator = user;
     user.posts.push(post);
     await user.save();
 
-    const topic = await Topic.findOne({ id: topicId });
     topic.posts.push(post);
     await topic.save();
-
-    await post.save();
 
     res.status(201).json({
       message: 'Post created!',

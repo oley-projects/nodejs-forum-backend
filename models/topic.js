@@ -10,8 +10,9 @@ const topicSchema = new Schema(
     slug: { type: String },
     description: { type: String, required: true },
     creator: {
-      _id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-      name: { type: String, ref: 'User', required: true },
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
     posts: [
       {

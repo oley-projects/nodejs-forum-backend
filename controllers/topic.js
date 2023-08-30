@@ -18,7 +18,11 @@ exports.getPosts = async (req, res, next) => {
     }
     const posts = await Post.find()
       .skip((currentPage - 1) * perPage)
-      .limit(perPage);
+      .limit(perPage)
+      .populate([
+        { path: 'creator', select: 'name' },
+        { path: 'topic', select: 'name' },
+      ]);
     res.status(200).json({ posts, totalItems });
   } catch (error) {
     if (!error.statusCode) {
@@ -35,7 +39,6 @@ exports.createPost = async (req, res, next) => {
     throw error;
   }
   const { id, name, description } = req.body;
-  let creator;
   let topic;
 
   try {
@@ -50,7 +53,7 @@ exports.createPost = async (req, res, next) => {
   const post = new Post({
     name,
     description,
-    creator: { _id: req.userId, name: req.userName },
+    creator: req.userId,
     topic: topic._id,
     replies: '0',
     views: '0',
@@ -68,7 +71,7 @@ exports.createPost = async (req, res, next) => {
     res.status(201).json({
       message: 'Post created!',
       post,
-      creator: { _id: creator._id, name: creator.name },
+      creator,
     });
   } catch (error) {
     if (!error.statusCode) {

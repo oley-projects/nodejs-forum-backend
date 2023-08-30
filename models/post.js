@@ -8,8 +8,9 @@ const postSchema = new Schema(
     name: { type: String },
     description: { type: String, required: true },
     creator: {
-      _id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-      name: { type: String, ref: 'User', required: true },
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
     topic: { type: Schema.Types.ObjectId, ref: 'Topic', required: true },
     replies: { type: String, required: true },

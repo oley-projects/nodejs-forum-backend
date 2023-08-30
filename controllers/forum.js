@@ -26,7 +26,8 @@ exports.getTopics = async (req, res, next) => {
     }
     const topics = await Topic.find()
       .skip((currentPage - 1) * perPage)
-      .limit(perPage);
+      .limit(perPage)
+      .populate({ path: 'creator', select: 'name' });
     res.status(200).json({ topics, totalItems });
   } catch (error) {
     if (!error.statusCode) {
@@ -43,11 +44,10 @@ exports.createTopic = async (req, res, next) => {
     throw error;
   }
   const { name, description } = req.body;
-  let creator;
   const topic = new Topic({
     name,
     description,
-    creator: { _id: req.userId, name: req.userName },
+    creator: req.userId,
     posts: [],
     replies: '0',
     views: '0',
@@ -65,7 +65,7 @@ exports.createTopic = async (req, res, next) => {
     res.status(201).json({
       message: 'Topic created!',
       topic,
-      creator: { _id: creator._id, name: creator.name },
+      creator,
     });
   } catch (error) {
     if (!error.statusCode) {

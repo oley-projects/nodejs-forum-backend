@@ -31,6 +31,39 @@ exports.getPosts = async (req, res, next) => {
   }
 };
 
+exports.getTopicPosts = async (req, res, next) => {
+  const currentPage = req.query.page || 1;
+  const limit = req.query.limit;
+  const topicId = req.params.topicId;
+
+  let totalItems = 0;
+  let perPage = 10;
+  try {
+    // totalItems = await Topic.find().countDocuments();
+    if (limit > 0 && limit < 100) {
+      perPage = limit;
+    } else if (limit === '-1' && totalItems < 100) {
+      perPage = totalItems;
+    }
+    const { posts } = await Topic.findOne({ id: topicId }).populate({
+      path: 'posts',
+      options: {
+        sort: {},
+        skip: (currentPage - 1) * perPage,
+        limit: perPage,
+      },
+      populate: [{ path: 'creator', model: 'User', select: 'name' }],
+    });
+    const topic = await Topic.findOne({ id: topicId });
+    totalItems = topic.posts.length;
+    res.status(200).json({ posts, totalItems, topic });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+  }
+};
+
 exports.createPost = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

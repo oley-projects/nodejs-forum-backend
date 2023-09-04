@@ -7,6 +7,7 @@ const isAuth = require('../middleware/is-auth');
 const router = express.Router();
 
 router.get('/posts', topicController.getPosts);
+router.get('/topicPosts/:topicId', topicController.getTopicPosts);
 router.post(
   '/post',
   isAuth,

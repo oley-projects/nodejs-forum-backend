@@ -36,43 +36,45 @@ exports.getTopics = async (req, res, next) => {
   }
 };
 
-exports.createTopic = async (req, res, next) => {
+exports.createTopic = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, invalid data.');
     error.statusCode = 422;
     throw error;
   }
-  const { name, description } = req.body;
-  const topic = new Topic({
-    name,
-    description,
-    creator: req.userId,
-    posts: [],
-    replies: '0',
-    views: '0',
-    lastPostUser: 'User',
-    lastPostCreatedAt: new Date().toLocaleString(),
-  });
-  try {
-    const user = await User.findById(req.userId);
-    creator = user;
-    user.topics.push(topic);
-    await user.save();
-
-    await topic.save();
-
-    res.status(201).json({
-      message: 'Topic created!',
-      topic,
-      creator,
+  (async () => {
+    const { name, description } = req.body;
+    const topic = new Topic({
+      name,
+      description,
+      creator: req.userId,
+      posts: [],
+      replies: '0',
+      views: '0',
+      lastPostUser: 'User',
+      lastPostCreatedAt: new Date().toLocaleString(),
     });
-  } catch (error) {
-    if (!error.statusCode) {
-      error.statusCode = 500;
+    try {
+      const user = await User.findById(req.userId);
+      creator = user;
+      user.topics.push(topic);
+      await user.save();
+
+      await topic.save();
+
+      res.status(201).json({
+        message: 'Topic created!',
+        topic,
+        creator,
+      });
+    } catch (error) {
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      next(error);
     }
-    next(error);
-  }
+  })();
 };
 
 exports.getTopic = async (req, res, next) => {
@@ -93,7 +95,7 @@ exports.getTopic = async (req, res, next) => {
   }
 };
 
-exports.updateTopic = async (req, res, next) => {
+exports.updateTopic = (req, res, next) => {
   const topicId = req.params.topicId;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -101,29 +103,31 @@ exports.updateTopic = async (req, res, next) => {
     error.statusCode = 422;
     throw error;
   }
-  const { name, description } = req.body;
-  try {
-    const topic = await Topic.findOne({ id: topicId });
-    if (!topic) {
-      const error = new Error('Could not find topic.');
-      error.statusCode = 404;
-      throw error;
+  (async () => {
+    const { name, description } = req.body;
+    try {
+      const topic = await Topic.findOne({ id: topicId });
+      if (!topic) {
+        const error = new Error('Could not find topic.');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (topic.creator.toString() !== req.userId) {
+        const error = new Error('Not authorized.');
+        error.statusCode = 403;
+        throw error;
+      }
+      topic.name = name;
+      topic.description = description;
+      await topic.save();
+      res.status(200).json({ message: 'Topic updated!', topic });
+    } catch (error) {
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      next(error);
     }
-    if (topic.creator.toString() !== req.userId) {
-      const error = new Error('Not authorized.');
-      error.statusCode = 403;
-      throw error;
-    }
-    topic.name = name;
-    topic.description = description;
-    await topic.save();
-    res.status(200).json({ message: 'Topic updated!', topic });
-  } catch (error) {
-    if (!error.statusCode) {
-      error.statusCode = 500;
-    }
-    next(error);
-  }
+  })();
 };
 
 exports.deleteTopic = async (req, res, next) => {

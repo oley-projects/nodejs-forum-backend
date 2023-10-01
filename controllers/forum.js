@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 
 const Topic = require('../models/topic');
 const User = require('../models/user');
+const Post = require('../models/post');
 
 exports.getCategories = (req, res, next) => {
   res.status(200).json({
@@ -144,7 +145,12 @@ exports.deleteTopic = async (req, res, next) => {
       error.statusCode = 403;
       throw error;
     }
+    if (topic.posts.length > 0) {
+      await User.updateMany({}, { $pull: { posts: { $in: topic.posts } } });
+      await Post.deleteMany({ _id: { $in: topic.posts } });
+    }
     await Topic.findOneAndDelete({ id: topicId });
+
     const user = await User.findById(req.userId);
     user.topics.pull(topic._id.toString());
     await user.save();

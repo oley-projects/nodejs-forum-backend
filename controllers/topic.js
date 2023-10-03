@@ -44,17 +44,20 @@ exports.getTopicPosts = async (req, res, next) => {
     } else if (limit === '-1' && totalItems < 100) {
       perPage = totalItems;
     }
-    const { posts } = await Topic.findOne({ id: topicId }).populate({
+    const { posts, total } = await Topic.findOne({ id: topicId }).populate({
       path: 'posts',
       options: {
         sort: {},
         skip: (currentPage - 1) * perPage,
         limit: perPage,
       },
-      populate: [{ path: 'creator', model: 'User', select: 'name' }],
+      populate: [
+        { path: 'creator', model: 'User', select: 'name' },
+        { path: 'topic', model: 'Topic', select: 'name' },
+      ],
     });
-    const topic = await Topic.findOne({ id: topicId });
-    totalItems = topic.posts.length;
+    const topic = posts[0].topic | '';
+    totalItems = total | 0;
     res.status(200).json({ posts, totalItems, topic });
   } catch (error) {
     if (!error.statusCode) {

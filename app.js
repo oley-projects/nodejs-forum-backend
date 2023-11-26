@@ -5,8 +5,10 @@ const mongoose = require('mongoose');
 const dotenvConf = require('dotenv').config();
 const MONGODB_URI = dotenvConf.parsed.MONGODB_URI;
 
+const categoryRoutes = require('./routes/category');
 const forumRoutes = require('./routes/forum');
 const topicRoutes = require('./routes/topic');
+const postRoutes = require('./routes/post');
 const authRoutes = require('./routes/auth');
 
 const app = express();
@@ -15,8 +17,10 @@ app.use(bodyParser.json());
 
 app.use(cors());
 
-app.use('/forum', forumRoutes);
-app.use('/forum', topicRoutes);
+app.use('/', categoryRoutes);
+app.use('/', forumRoutes);
+app.use('/', topicRoutes);
+app.use('/', postRoutes);
 app.use('/auth', authRoutes);
 
 app.use((error, req, res, next) => {

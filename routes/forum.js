@@ -6,29 +6,28 @@ const isAuth = require('../middleware/is-auth');
 
 const router = express.Router();
 
-router.get('/categories', forumController.getCategories);
-router.get('/topics', forumController.getTopics);
+router.get('/forums', forumController.getForums);
 router.post(
-  '/topic',
+  '/forum',
   isAuth,
   [
     body('name').trim().isLength({ min: 3, max: 40 }),
     body('description').trim().isLength({ min: 5, max: 200 }),
   ],
-  forumController.createTopic
+  forumController.createForum
 );
-router.get('/topic/:topicId', forumController.getTopic);
+router.get('/forum/:forumId', forumController.getForum);
 
 router.put(
-  '/topic/:topicId',
+  '/forum/:forumId',
   isAuth,
   [
     body('name').trim().isLength({ min: 3, max: 40 }),
     body('description').trim().isLength({ min: 5, max: 200 }),
   ],
-  forumController.updateTopic
+  forumController.updateForum
 );
 
-router.delete('/topic/:topicId', isAuth, forumController.deleteTopic);
+router.delete('/forum/:forumId', isAuth, forumController.deleteForum);
 
 module.exports = router;

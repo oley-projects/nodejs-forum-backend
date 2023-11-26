@@ -6,23 +6,28 @@ const isAuth = require('../middleware/is-auth');
 
 const router = express.Router();
 
-router.get('/posts', topicController.getPosts);
-router.get('/topicPosts/:topicId', topicController.getTopicPosts);
+router.get('/topics', topicController.getTopics);
 router.post(
-  '/post',
+  '/topic',
   isAuth,
-  [body('description').trim().isLength({ min: 5, max: 200 })],
-  topicController.createPost
+  [
+    body('name').trim().isLength({ min: 3, max: 40 }),
+    body('description').trim().isLength({ min: 5, max: 200 }),
+  ],
+  topicController.createTopic
 );
-router.get('/post/:postId', topicController.getPost);
+router.get('/topic/:topicId', topicController.getTopic);
 
 router.put(
-  '/post/:postId',
+  '/topic/:topicId',
   isAuth,
-  [body('description').trim().isLength({ min: 5, max: 200 })],
-  topicController.updatePost
+  [
+    body('name').trim().isLength({ min: 3, max: 40 }),
+    body('description').trim().isLength({ min: 5, max: 200 }),
+  ],
+  topicController.updateTopic
 );
 
-router.delete('/post/:postId', isAuth, topicController.deletePost);
+router.delete('/topic/:topicId', isAuth, topicController.deleteTopic);
 
 module.exports = router;

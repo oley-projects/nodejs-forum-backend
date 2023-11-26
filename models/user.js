@@ -23,6 +23,18 @@ const userSchema = new Schema(
       type: String,
       default: 'new user',
     },
+    categories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Category',
+      },
+    ],
+    forums: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Forum',
+      },
+    ],
     topics: [
       {
         type: Schema.Types.ObjectId,

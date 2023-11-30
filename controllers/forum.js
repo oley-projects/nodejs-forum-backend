@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const Forum = require('../models/forum');
 const User = require('../models/user');
 const Topic = require('../models/topic');
+const Category = require('../models/category');
 
 exports.getForums = async (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -36,28 +37,39 @@ exports.createForum = (req, res, next) => {
     throw error;
   }
   (async () => {
-    const { name, description } = req.body;
+    const { id, name, description } = req.body;
+    let category;
+
+    try {
+      category = await Category.findOne({ id });
+    } catch (error) {
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      next(error);
+    }
     const forum = new Forum({
       name,
       description,
       creator: req.userId,
-      posts: [],
+      category: category._id,
+      topics: [],
       views: '0',
       lastPostUser: 'User',
       lastPostCreatedAt: new Date().toLocaleString(),
     });
     try {
+      await forum.save();
       const user = await User.findById(req.userId);
-      creator = user;
       user.forums.push(forum);
       await user.save();
 
-      await forum.save();
+      category.forums.push(forum);
+      await category.save();
 
       res.status(201).json({
         message: 'Forum created!',
         forum,
-        creator,
       });
     } catch (error) {
       if (!error.statusCode) {
@@ -69,9 +81,31 @@ exports.createForum = (req, res, next) => {
 };
 
 exports.getForum = async (req, res, next) => {
+  const currentPage = req.query.page;
+  const limit = req.query.limit || 10;
   const forumId = req.params.forumId;
+  let perPage = 10;
   try {
-    const forum = await Forum.findOne({ id: forumId });
+    if (limit > 100) {
+      perPage = 100;
+    } else if (limit < 0) {
+      perPage = 10;
+    } else {
+      perPage = limit;
+    }
+
+    const forum = await Forum.findOne({ id: forumId }).populate([
+      { path: 'creator', model: 'User', select: 'name' },
+      {
+        path: 'topics',
+        options: {
+          sort: {},
+          skip: (currentPage - 1) * perPage,
+          limit: perPage,
+        },
+        populate: [{ path: 'creator', model: 'User', select: 'name' }],
+      },
+    ]);
     if (!forum) {
       const error = new Error('Could not find forum.');
       error.statusCode = 404;

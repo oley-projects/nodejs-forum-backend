@@ -31,41 +31,6 @@ exports.getPosts = async (req, res, next) => {
   }
 };
 
-exports.getTopicPosts = async (req, res, next) => {
-  const currentPage = req.query.page || 1;
-  const limit = req.query.limit;
-  const topicId = req.params.topicId;
-
-  let totalItems = 0;
-  let perPage = 10;
-  try {
-    if (limit > 0 && limit < 100) {
-      perPage = limit;
-    } else if (limit === '-1' && totalItems < 100) {
-      perPage = totalItems;
-    }
-    const { posts, total } = await Topic.findOne({ id: topicId }).populate({
-      path: 'posts',
-      options: {
-        sort: {},
-        skip: (currentPage - 1) * perPage,
-        limit: perPage,
-      },
-      populate: [
-        { path: 'creator', model: 'User', select: 'name' },
-        { path: 'topic', model: 'Topic', select: 'name' },
-      ],
-    });
-    const topic = posts[0].topic | '';
-    totalItems = total | 0;
-    res.status(200).json({ posts, totalItems, topic });
-  } catch (error) {
-    if (!error.statusCode) {
-      error.statusCode = 500;
-    }
-  }
-};
-
 exports.createPost = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -97,7 +62,6 @@ exports.createPost = (req, res, next) => {
     try {
       await post.save();
       const user = await User.findById(req.userId);
-      creator = user;
       user.posts.push(post);
       await user.save();
 
@@ -107,7 +71,6 @@ exports.createPost = (req, res, next) => {
       res.status(201).json({
         message: 'Post created!',
         post,
-        creator,
       });
     } catch (error) {
       if (!error.statusCode) {
@@ -121,7 +84,9 @@ exports.createPost = (req, res, next) => {
 exports.getPost = async (req, res, next) => {
   const postId = req.params.postId;
   try {
-    const post = await Post.findOne({ id: postId });
+    const post = await (
+      await Post.findOne({ id: postId })
+    ).populated({ path: 'creator', model: 'User', select: 'name' });
     if (!post) {
       const error = new Error('Could not find post.');
       error.statusCode = 404;

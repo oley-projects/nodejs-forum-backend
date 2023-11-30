@@ -19,7 +19,18 @@ exports.getCategories = async (req, res, next) => {
     const categories = await Category.find()
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
-      .populate({ path: 'creator', select: 'name' });
+      .populate([
+        {
+          path: 'forums',
+          options: {
+            sort: {},
+            skip: (currentPage - 1) * perPage,
+            limit: perPage,
+          },
+          populate: [{ path: 'creator', model: 'User', select: 'name' }],
+        },
+        { path: 'creator', model: 'User', select: 'name' },
+      ]);
     res.status(200).json({ categories, totalItems });
   } catch (error) {
     if (!error.statusCode) {
@@ -49,7 +60,6 @@ exports.createCategory = (req, res, next) => {
     });
     try {
       const user = await User.findById(req.userId);
-      creator = user;
       user.categories.push(category);
       await user.save();
 
@@ -58,7 +68,6 @@ exports.createCategory = (req, res, next) => {
       res.status(201).json({
         message: 'Category created!',
         category,
-        creator,
       });
     } catch (error) {
       if (!error.statusCode) {
@@ -70,9 +79,31 @@ exports.createCategory = (req, res, next) => {
 };
 
 exports.getCategory = async (req, res, next) => {
+  const currentPage = req.query.page;
+  const limit = req.query.limit || 10;
   const categoryId = req.params.categoryId;
+  let perPage = 10;
   try {
-    const category = await Category.findOne({ id: categoryId });
+    if (limit > 100) {
+      perPage = 100;
+    } else if (limit < 0) {
+      perPage = 10;
+    } else {
+      perPage = limit;
+    }
+
+    const category = await Category.findOne({ id: categoryId }).populate([
+      { path: 'creator', model: 'User', select: 'name' },
+      {
+        path: 'forums',
+        options: {
+          sort: {},
+          skip: (currentPage - 1) * perPage,
+          limit: perPage,
+        },
+        populate: [{ path: 'creator', model: 'User', select: 'name' }],
+      },
+    ]);
     if (!category) {
       const error = new Error('Could not find category.');
       error.statusCode = 404;

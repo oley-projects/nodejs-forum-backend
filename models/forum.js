@@ -14,6 +14,7 @@ const forumSchema = new Schema(
       ref: 'User',
       required: true,
     },
+    category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     topics: [
       {
         type: Schema.Types.ObjectId,
@@ -27,8 +28,8 @@ const forumSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-forumSchema.virtual('total').get(function () {
-  return this.topics.length;
+forumSchema.virtual('totalItems').get(function () {
+  return this.topics.length || 0;
 });
 
 forumSchema.pre('save', async function () {

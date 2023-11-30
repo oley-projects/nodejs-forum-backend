@@ -27,8 +27,8 @@ const categorySchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-categorySchema.virtual('total').get(function () {
-  return this.forums.length;
+categorySchema.virtual('totalItems').get(function () {
+  return this.forums.length || 0;
 });
 
 categorySchema.pre('save', async function () {

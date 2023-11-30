@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const Topic = require('../models/topic');
 const User = require('../models/user');
 const Post = require('../models/post');
+const Forum = require('../models/forum');
 
 exports.getTopics = async (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -36,11 +37,23 @@ exports.createTopic = (req, res, next) => {
     throw error;
   }
   (async () => {
-    const { name, description } = req.body;
+    const { id, name, description } = req.body;
+    let forum;
+
+    try {
+      forum = await Forum.findOne({ id });
+    } catch (error) {
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      next(error);
+    }
+
     const topic = new Topic({
       name,
       description,
       creator: req.userId,
+      forum: forum._id,
       posts: [],
       replies: '0',
       views: '0',
@@ -48,17 +61,17 @@ exports.createTopic = (req, res, next) => {
       lastPostCreatedAt: new Date().toLocaleString(),
     });
     try {
+      await topic.save();
       const user = await User.findById(req.userId);
-      creator = user;
       user.topics.push(topic);
       await user.save();
 
-      await topic.save();
+      forum.topics.push(topic);
+      await forum.save();
 
       res.status(201).json({
         message: 'Topic created!',
         topic,
-        creator,
       });
     } catch (error) {
       if (!error.statusCode) {
@@ -70,9 +83,31 @@ exports.createTopic = (req, res, next) => {
 };
 
 exports.getTopic = async (req, res, next) => {
+  const currentPage = req.query.page;
+  const limit = req.query.limit || 10;
   const topicId = req.params.topicId;
+  let perPage = 10;
   try {
-    const topic = await Topic.findOne({ id: topicId });
+    if (limit > 100) {
+      perPage = 100;
+    } else if (limit < 0) {
+      perPage = 10;
+    } else {
+      perPage = limit;
+    }
+
+    const topic = await Topic.findOne({ id: topicId }).populate([
+      { path: 'creator', model: 'User', select: 'name' },
+      {
+        path: 'posts',
+        options: {
+          sort: {},
+          skip: (currentPage - 1) * perPage,
+          limit: perPage,
+        },
+        populate: [{ path: 'creator', model: 'User', select: 'name' }],
+      },
+    ]);
     if (!topic) {
       const error = new Error('Could not find topic.');
       error.statusCode = 404;

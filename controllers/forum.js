@@ -42,12 +42,18 @@ exports.createForum = (req, res, next) => {
 
     try {
       category = await Category.findOne({ id });
+      if (!category) {
+        const error = new Error('Could not find category.');
+        error.statusCode = 404;
+        throw error;
+      }
     } catch (error) {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
       next(error);
     }
+
     const forum = new Forum({
       name,
       description,
@@ -175,10 +181,12 @@ exports.deleteForum = async (req, res, next) => {
       // post delete relation
     }
     await Forum.findOneAndDelete({ id: forumId });
-
     const user = await User.findById(req.userId);
     user.forums.pull(forum._id.toString());
     await user.save();
+    const category = await Category.findById(forum.category.toString());
+    category.forums.pull(forum._id.toString());
+    await category.save();
     res.status(200).json({ message: 'Forum was deleted.' });
   } catch (error) {
     if (!error.statusCode) {

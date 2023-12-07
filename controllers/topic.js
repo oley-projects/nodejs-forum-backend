@@ -39,16 +39,19 @@ exports.createTopic = (req, res, next) => {
   (async () => {
     const { id, name, description } = req.body;
     let forum;
-
     try {
       forum = await Forum.findOne({ id });
+      if (!forum) {
+        const error = new Error('Could not find forum.');
+        error.statusCode = 404;
+        throw error;
+      }
     } catch (error) {
       if (!error.statusCode) {
         error.statusCode = 500;
       }
       next(error);
     }
-
     const topic = new Topic({
       name,
       description,
@@ -176,10 +179,12 @@ exports.deleteTopic = async (req, res, next) => {
       await Post.deleteMany({ _id: { $in: topic.posts } });
     }
     await Topic.findOneAndDelete({ id: topicId });
-
     const user = await User.findById(req.userId);
     user.topics.pull(topic._id.toString());
     await user.save();
+    const forum = await Forum.findById(topic.forum.toString());
+    forum.topics.pull(topic._id.toString());
+    await forum.save();
     res.status(200).json({ message: 'Topic was deleted.' });
   } catch (error) {
     if (!error.statusCode) {

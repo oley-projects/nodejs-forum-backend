@@ -5,30 +5,6 @@ const User = require('../models/user');
 const Topic = require('../models/topic');
 const Category = require('../models/category');
 
-exports.getForums = async (req, res, next) => {
-  const currentPage = req.query.page || 1;
-  const limit = req.query.limit;
-  let totalItems = 0;
-  let perPage = 10;
-  try {
-    totalItems = await Forum.find().countDocuments();
-    if (limit > 0 && limit < 100) {
-      perPage = limit;
-    } else if (limit === '-1' && totalItems < 100) {
-      perPage = totalItems;
-    }
-    const forums = await Forum.find()
-      .skip((currentPage - 1) * perPage)
-      .limit(perPage)
-      .populate({ path: 'creator', select: 'name' });
-    res.status(200).json({ forums, totalItems });
-  } catch (error) {
-    if (!error.statusCode) {
-      error.statusCode = 500;
-    }
-  }
-};
-
 exports.createForum = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -117,7 +93,10 @@ exports.getForum = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    res.status(200).json({ forum });
+    const totalItems = await Topic.countDocuments({
+      forum: forum._id,
+    });
+    res.status(200).json({ forum, totalItems });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

@@ -28,10 +28,6 @@ const forumSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-forumSchema.virtual('totalItems').get(function () {
-  return this.topics.length || 0;
-});
-
 forumSchema.pre('save', async function () {
   const doc = this;
   doc.slug = await slugify(doc.name);

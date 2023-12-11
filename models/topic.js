@@ -29,10 +29,6 @@ const topicSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-topicSchema.virtual('totalItems').get(function () {
-  return this.posts.length || 0;
-});
-
 topicSchema.pre('save', async function () {
   const doc = this;
   doc.slug = await slugify(doc.name);

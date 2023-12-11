@@ -7,12 +7,14 @@ const isAuth = require('../middleware/is-auth');
 const router = express.Router();
 
 router.get('/posts', postController.getPosts);
+
 router.post(
   '/post',
   isAuth,
   [body('description').trim().isLength({ min: 5, max: 200 })],
   postController.createPost
 );
+
 router.get('/post/:postId', postController.getPost);
 
 router.put(

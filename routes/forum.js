@@ -6,7 +6,6 @@ const isAuth = require('../middleware/is-auth');
 
 const router = express.Router();
 
-router.get('/forums', forumController.getForums);
 router.post(
   '/forum',
   isAuth,
@@ -16,6 +15,7 @@ router.post(
   ],
   forumController.createForum
 );
+
 router.get('/forum/:forumId', forumController.getForum);
 
 router.put(

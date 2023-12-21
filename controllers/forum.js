@@ -96,7 +96,38 @@ exports.getForum = async (req, res, next) => {
     const totalItems = await Topic.countDocuments({
       forum: forum._id,
     });
-    res.status(200).json({ forum, totalItems });
+    const totalPosts = await Forum.aggregate([
+      { $match: { id: forumId } },
+      {
+        $lookup: {
+          from: 'topics',
+          let: { topics: '$topics' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$_id', '$$topics'] },
+              },
+            },
+          ],
+          as: 'topics',
+        },
+      },
+      {
+        $addFields: {
+          totalPosts: {
+            $sum: {
+              $map: {
+                input: '$topics',
+                in: { $size: '$$this.posts' },
+              },
+            },
+          },
+        },
+      },
+    ]);
+    res
+      .status(200)
+      .json({ forum, totalItems, totalPosts: totalPosts[0].totalPosts });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

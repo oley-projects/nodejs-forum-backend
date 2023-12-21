@@ -7,16 +7,17 @@ const Forum = require('../models/forum');
 exports.getCategories = async (req, res, next) => {
   const currentPage = req.query.page || 1;
   const limit = req.query.limit;
-  let totalItems = 0;
   let perPage = 10;
   try {
-    totalItems = await Category.find().countDocuments();
-    if (limit > 0 && limit < 100) {
+    if (limit > 100) {
+      perPage = 100;
+    } else if (limit < 0) {
+      perPage = 10;
+    } else {
       perPage = limit;
-    } else if (limit === '-1' && totalItems < 100) {
-      perPage = totalItems;
     }
-    const categories = await Category.find()
+    const skip = (currentPage - 1) * perPage;
+    /*const categories = await Category.find()
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
       .populate([
@@ -30,8 +31,107 @@ exports.getCategories = async (req, res, next) => {
           populate: [{ path: 'creator', model: 'User', select: 'name' }],
         },
         { path: 'creator', model: 'User', select: 'name' },
-      ]);
-    res.status(200).json({ categories, totalItems });
+      ]);*/
+    const categoriesReq = await Category.aggregate([
+      {
+        $lookup: {
+          from: 'forums',
+          let: { forums: '$forums' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$_id', '$$forums'] },
+              },
+            },
+            {
+              $lookup: {
+                from: 'topics',
+                let: { topics: '$topics' },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $in: ['$_id', '$$topics'],
+                      },
+                    },
+                  },
+                ],
+                as: 'topics',
+              },
+            },
+            {
+              $addFields: {
+                totalPosts: {
+                  $sum: {
+                    $map: {
+                      input: '$topics',
+                      in: { $size: '$$this.posts' },
+                    },
+                  },
+                },
+                totalTopics: { $size: '$topics' },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                description: 1,
+                creator: 1,
+                category: 1,
+                slug: 1,
+                id: 1,
+                totalPosts: 1,
+                totalTopics: 1,
+              },
+            },
+          ],
+          as: 'forums',
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'creator',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, email: 1, name: 1 } }],
+          as: 'creator',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          creator: { $first: '$creator' },
+          forums: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          slug: 1,
+          id: 1,
+        },
+      },
+      {
+        $facet: {
+          categories: [
+            { $skip: parseInt(skip) },
+            { $limit: parseInt(perPage) },
+          ],
+          totalItems: [{ $count: 'count' }],
+        },
+      },
+      {
+        $project: {
+          categories: 1,
+          totalItems: { $first: '$totalItems.count' },
+        },
+      },
+    ]);
+    const { categories, totalItems } = categoriesReq[0];
+    res.status(200).json({
+      categories,
+      totalItems,
+    });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

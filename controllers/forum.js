@@ -4,6 +4,7 @@ const Forum = require('../models/forum');
 const User = require('../models/user');
 const Topic = require('../models/topic');
 const Category = require('../models/category');
+const Post = require('../models/post');
 
 exports.createForum = (req, res, next) => {
   const errors = validationResult(req);
@@ -174,21 +175,70 @@ exports.updateForum = (req, res, next) => {
 exports.deleteForum = async (req, res, next) => {
   const { forumId } = req.params;
   try {
-    const forum = await Forum.findOne({ id: forumId });
+    const [forum] = await Forum.aggregate([
+      { $match: { id: forumId } },
+      {
+        $lookup: {
+          from: 'topics',
+          let: { topics: '$topics' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$_id', '$$topics'] },
+              },
+            },
+            { $project: { posts: 1 } },
+          ],
+          as: 'topics',
+        },
+      },
+      {
+        $unwind: {
+          path: '$topics',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$topics.posts',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $group: {
+          _id: '$_id',
+          creator: { $first: '$creator' },
+          category: { $first: '$category' },
+          topics: { $push: '$topics' },
+          posts: { $push: '$topics.posts' },
+        },
+      },
+      {
+        $set: {
+          topics: {
+            $setUnion: ['$topics._id', []],
+          },
+        },
+      },
+    ]);
     if (!forum) {
       const error = new Error('Could not find forum.');
       error.statusCode = 404;
       throw error;
     }
-    if (forum.creator._id.toString() !== req.userId) {
+    if (forum.creator.toString() !== req.userId) {
       const error = new Error('Not authorized.');
       error.statusCode = 403;
       throw error;
     }
     if (forum.topics.length > 0) {
-      await User.updateMany({}, { $pull: { posts: { $in: forum.topics } } });
+      await User.updateMany({}, { $pull: { topics: { $in: forum.topics } } });
       await Topic.deleteMany({ _id: { $in: forum.topics } });
-      // post delete relation
+
+      if (forum.posts.length > 0) {
+        await User.updateMany({}, { $pull: { posts: { $in: forum.posts } } });
+        await Post.deleteMany({ _id: { $in: forum.posts } });
+      }
     }
     await Forum.findOneAndDelete({ id: forumId });
     const user = await User.findById(req.userId);

@@ -32,7 +32,7 @@ exports.getCategories = async (req, res, next) => {
         },
         { path: 'creator', model: 'User', select: 'name' },
       ]);*/
-    const categoriesReq = await Category.aggregate([
+    const categoriesCursor = await Category.aggregate([
       {
         $lookup: {
           from: 'forums',
@@ -60,6 +60,23 @@ exports.getCategories = async (req, res, next) => {
               },
             },
             {
+              $lookup: {
+                from: 'users',
+                localField: 'creator',
+                foreignField: '_id',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      email: 1,
+                      name: 1,
+                    },
+                  },
+                ],
+                as: 'creator',
+              },
+            },
+            {
               $addFields: {
                 totalPosts: {
                   $sum: {
@@ -73,16 +90,15 @@ exports.getCategories = async (req, res, next) => {
               },
             },
             {
+              $set: {
+                creator: {
+                  $first: '$creator',
+                },
+              },
+            },
+            {
               $project: {
-                _id: 1,
-                name: 1,
-                description: 1,
-                creator: 1,
-                category: 1,
-                slug: 1,
-                id: 1,
-                totalPosts: 1,
-                totalTopics: 1,
+                topics: 0,
               },
             },
           ],
@@ -99,16 +115,8 @@ exports.getCategories = async (req, res, next) => {
         },
       },
       {
-        $project: {
-          _id: 1,
-          name: 1,
-          description: 1,
+        $set: {
           creator: { $first: '$creator' },
-          forums: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          slug: 1,
-          id: 1,
         },
       },
       {
@@ -126,11 +134,69 @@ exports.getCategories = async (req, res, next) => {
           totalItems: { $first: '$totalItems.count' },
         },
       },
+      {
+        $lookup: {
+          from: 'posts',
+          let: {},
+          pipeline: [
+            {
+              $sort: { createdAt: -1 },
+            },
+            {
+              $limit: 10,
+            },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'creator',
+                foreignField: '_id',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      email: 1,
+                      name: 1,
+                    },
+                  },
+                ],
+                as: 'creator',
+              },
+            },
+            {
+              $lookup: {
+                from: 'topics',
+                localField: 'topic',
+                foreignField: '_id',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      description: 1,
+                      slug: 1,
+                      id: 1,
+                    },
+                  },
+                ],
+                as: 'topic',
+              },
+            },
+            {
+              $set: {
+                creator: { $first: '$creator' },
+                topic: { $first: '$topic' },
+              },
+            },
+          ],
+          as: 'lastPosts',
+        },
+      },
     ]);
-    const { categories, totalItems } = categoriesReq[0];
+    const { categories, totalItems, lastPosts } = categoriesCursor[0];
     res.status(200).json({
       categories,
       totalItems,
+      lastPosts,
     });
   } catch (error) {
     if (!error.statusCode) {

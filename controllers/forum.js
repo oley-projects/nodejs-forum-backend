@@ -71,7 +71,7 @@ exports.getForum = async (req, res, next) => {
   try {
     if (limit > 100) {
       perPage = 100;
-    } else if (limit < 0) {
+    } else if (limit < 1) {
       perPage = 10;
     } else {
       perPage = limit;

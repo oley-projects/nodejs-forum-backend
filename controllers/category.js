@@ -3,6 +3,8 @@ const { validationResult } = require('express-validator');
 const Category = require('../models/category');
 const User = require('../models/user');
 const Forum = require('../models/forum');
+const Topic = require('../models/topic');
+const Post = require('../models/post');
 
 exports.getCategories = async (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -17,21 +19,6 @@ exports.getCategories = async (req, res, next) => {
       perPage = limit;
     }
     const skip = (currentPage - 1) * perPage;
-    /*const categories = await Category.find()
-      .skip((currentPage - 1) * perPage)
-      .limit(perPage)
-      .populate([
-        {
-          path: 'forums',
-          options: {
-            sort: {},
-            skip: (currentPage - 1) * perPage,
-            limit: perPage,
-          },
-          populate: [{ path: 'creator', model: 'User', select: 'name' }],
-        },
-        { path: 'creator', model: 'User', select: 'name' },
-      ]);*/
     const categoriesCursor = await Category.aggregate([
       {
         $lookup: {
@@ -202,6 +189,7 @@ exports.getCategories = async (req, res, next) => {
     if (!error.statusCode) {
       error.statusCode = 500;
     }
+    next(error);
   }
 };
 
@@ -228,9 +216,7 @@ exports.createCategory = (req, res, next) => {
       const user = await User.findById(req.userId);
       user.categories.push(category);
       await user.save();
-
       await category.save();
-
       res.status(201).json({
         message: 'Category created!',
         category,
@@ -257,7 +243,6 @@ exports.getCategory = async (req, res, next) => {
     } else {
       perPage = limit;
     }
-
     const category = await Category.findOne({ id: categoryId }).populate([
       { path: 'creator', model: 'User', select: 'name' },
       {
@@ -322,13 +307,84 @@ exports.updateCategory = (req, res, next) => {
 exports.deleteCategory = async (req, res, next) => {
   const { categoryId } = req.params;
   try {
-    const category = await Category.findOne({ id: categoryId });
+    const [category] = await Category.aggregate([
+      { $match: { id: categoryId } },
+      {
+        $lookup: {
+          from: 'forums',
+          let: { forums: '$forums' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$_id', '$$forums'] },
+              },
+            },
+            { $project: { topics: 1 } },
+            {
+              $lookup: {
+                from: 'topics',
+                let: { topics: '$topics' },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $in: ['$_id', '$$topics'],
+                      },
+                    },
+                  },
+                  { $project: { posts: 1 } },
+                ],
+                as: 'topics',
+              },
+            },
+          ],
+          as: 'forums',
+        },
+      },
+      {
+        $unwind: {
+          path: '$forums',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$forums.topics',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$forums.topics.posts',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $group: {
+          _id: '$_id',
+          creator: { $first: '$creator' },
+          forums: { $push: '$forums' },
+          topics: { $push: '$forums.topics' },
+          posts: { $push: '$forums.topics.posts' },
+        },
+      },
+      {
+        $set: {
+          forums: {
+            $setUnion: ['$forums._id', []],
+          },
+          topics: {
+            $setUnion: ['$topics._id', []],
+          },
+        },
+      },
+    ]);
     if (!category) {
       const error = new Error('Could not find category.');
       error.statusCode = 404;
       throw error;
     }
-    if (category.creator._id.toString() !== req.userId) {
+    if (category.creator.toString() !== req.userId) {
       const error = new Error('Not authorized.');
       error.statusCode = 403;
       throw error;
@@ -339,9 +395,22 @@ exports.deleteCategory = async (req, res, next) => {
         { $pull: { forums: { $in: category.forums } } }
       );
       await Forum.deleteMany({ _id: { $in: category.forums } });
+      if (category.topics.length > 0) {
+        await User.updateMany(
+          {},
+          { $pull: { topics: { $in: category.topics } } }
+        );
+        await Topic.deleteMany({ _id: { $in: category.topics } });
+        if (category.posts.length > 0) {
+          await User.updateMany(
+            {},
+            { $pull: { posts: { $in: category.posts } } }
+          );
+          await Post.deleteMany({ _id: { $in: category.posts } });
+        }
+      }
     }
     await Category.findOneAndDelete({ id: categoryId });
-
     const user = await User.findById(req.userId);
     user.categories.pull(category._id.toString());
     await user.save();

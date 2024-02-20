@@ -7,7 +7,8 @@ const User = require('../models/user');
 exports.getPosts = async (req, res, next) => {
   const query = req.params.query;
   const currentPage = req.query.page || 1;
-  const limit = req.query.limit;
+  const limit = req.query.limit || 10;
+  const ascDesc = req.query.ascDesc || 'asc';
   let totalItems = 0;
   let perPage = 10;
   const filter = {};
@@ -15,7 +16,7 @@ exports.getPosts = async (req, res, next) => {
     filter.description = { $regex: query };
   }
   try {
-    totalItems = await Post.find().countDocuments();
+    totalItems = await Post.find(filter).countDocuments();
     if (limit > 0 && limit < 100) {
       perPage = limit;
     } else if (limit === '-1' && totalItems < 100) {
@@ -27,7 +28,8 @@ exports.getPosts = async (req, res, next) => {
       .populate([
         { path: 'creator', select: 'name' },
         { path: 'topic', select: 'name id' },
-      ]);
+      ])
+      .sort({ createdAt: ascDesc });
     res.status(200).json({ posts, totalItems });
   } catch (error) {
     if (!error.statusCode) {

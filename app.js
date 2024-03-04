@@ -9,7 +9,7 @@ const categoryRoutes = require('./routes/category');
 const forumRoutes = require('./routes/forum');
 const topicRoutes = require('./routes/topic');
 const postRoutes = require('./routes/post');
-const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 
 const app = express();
 
@@ -21,7 +21,7 @@ app.use('/', categoryRoutes);
 app.use('/', forumRoutes);
 app.use('/', topicRoutes);
 app.use('/', postRoutes);
-app.use('/auth', authRoutes);
+app.use('/', userRoutes);
 
 app.use((error, req, res, next) => {
   const { statusCode = 500, message, data } = error;

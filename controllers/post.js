@@ -5,15 +5,18 @@ const Topic = require('../models/topic');
 const User = require('../models/user');
 
 exports.getPosts = async (req, res, next) => {
-  const query = req.params.query;
+  const keywords = req.params.keywords;
   const currentPage = req.query.page || 1;
   const limit = req.query.limit || 10;
-  const ascDesc = req.query.ascDesc || 'asc';
+  const sort = req.query.sort.split('_') || ['createAt', 'desc'];
+  const [sortField, sortValue] = sort;
+  const sortObj = {};
+  sortObj[sortField] = sortValue;
   let totalItems = 0;
   let perPage = 10;
   const filter = {};
-  if (query) {
-    filter.description = { $regex: query };
+  if (keywords) {
+    filter.description = { $regex: keywords };
   }
   try {
     totalItems = await Post.find(filter).countDocuments();
@@ -29,7 +32,7 @@ exports.getPosts = async (req, res, next) => {
         { path: 'creator', select: 'name' },
         { path: 'topic', select: 'name id' },
       ])
-      .sort({ createdAt: ascDesc });
+      .sort(sortObj);
     res.status(200).json({ posts, totalItems });
   } catch (error) {
     if (!error.statusCode) {

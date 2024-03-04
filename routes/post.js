@@ -7,7 +7,7 @@ const isAuth = require('../middleware/is-auth');
 const router = express.Router();
 
 router.get('/posts/', postController.getPosts);
-router.get('/results/:query', postController.getPosts);
+router.get('/posts/:keywords', postController.getPosts);
 
 router.post(
   '/post',

@@ -2,12 +2,14 @@ const express = require('express');
 const { body } = require('express-validator');
 
 const User = require('../models/user');
-const authController = require('../controllers/auth');
+const userController = require('../controllers/user');
 
 const router = express.Router();
 
+router.get('/users/:keywords', userController.getUsers);
+
 router.put(
-  '/signup',
+  '/user/signup',
   [
     body('email')
       .isEmail()
@@ -22,11 +24,11 @@ router.put(
     body('password').trim().isLength({ min: 5, max: 25 }),
     body('name').trim().isLength({ min: 2, max: 25 }),
   ],
-  authController.signup
+  userController.signup
 );
 
 router.post(
-  '/login',
+  '/user/login',
   [
     body('email')
       .isEmail()
@@ -35,7 +37,7 @@ router.post(
       .normalizeEmail(),
     body('password').trim().isLength({ min: 5, max: 25 }),
   ],
-  authController.login
+  userController.login
 );
 
 module.exports = router;

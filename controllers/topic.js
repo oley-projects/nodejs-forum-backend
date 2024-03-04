@@ -104,6 +104,41 @@ exports.getTopic = async (req, res, next) => {
   }
 };
 
+exports.getTopics = async (req, res, next) => {
+  const keywords = req.params.keywords;
+  const currentPage = req.query.page || 1;
+  const limit = req.query.limit || 10;
+  const sort = req.query.sort.split('_') || ['createAt', 'desc'];
+  const [sortField, sortValue] = sort;
+  const sortObj = {};
+  sortObj[sortField] = sortValue;
+  let totalItems = 0;
+  let perPage = 10;
+  const filter = {};
+  if (keywords) {
+    filter.name = { $regex: keywords };
+  }
+  try {
+    totalItems = await Topic.find(filter).countDocuments();
+    if (limit > 0 && limit < 100) {
+      perPage = limit;
+    } else if (limit === '-1' && totalItems < 100) {
+      perPage = totalItems;
+    }
+    const topics = await Topic.find(filter)
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage)
+      .populate([{ path: 'creator', select: 'name' }])
+      .sort(sortObj);
+    res.status(200).json({ topics, totalItems });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+};
+
 exports.updateTopic = (req, res, next) => {
   const topicId = req.params.topicId;
   const errors = validationResult(req);

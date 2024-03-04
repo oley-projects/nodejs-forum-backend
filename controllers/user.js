@@ -6,6 +6,41 @@ const TOKEN_KEY = dotenvConf.parsed.TOKEN_KEY;
 
 const User = require('../models/user');
 
+exports.getUsers = async (req, res, next) => {
+  const keywords = req.params.keywords;
+  const currentPage = req.query.page || 1;
+  const limit = req.query.limit || 10;
+  const sort = req.query.sort.split('_') || ['createAt', 'desc'];
+  const [sortField, sortValue] = sort;
+  const sortObj = {};
+  sortObj[sortField] = sortValue;
+  let totalItems = 0;
+  let perPage = 10;
+  const filter = {};
+  if (keywords) {
+    filter.name = { $regex: keywords };
+  }
+  try {
+    totalItems = await User.find(filter).countDocuments();
+    if (limit > 0 && limit < 100) {
+      perPage = limit;
+    } else if (limit === '-1' && totalItems < 100) {
+      perPage = totalItems;
+    }
+    const users = await User.find(filter)
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage)
+      .sort(sortObj)
+      .select('-password');
+    res.status(200).json({ users, totalItems });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+};
+
 exports.signup = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

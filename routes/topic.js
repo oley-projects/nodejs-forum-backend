@@ -17,6 +17,7 @@ router.post(
 );
 
 router.get('/topic/:topicId', topicController.getTopic);
+router.get('/topics/:keywords', topicController.getTopics);
 
 router.put(
   '/topic/:topicId',

@@ -41,6 +41,32 @@ exports.getUsers = async (req, res, next) => {
   }
 };
 
+exports.getUser = async (req, res, next) => {
+  const userId = req.params.userId;
+  try {
+    const user = await User.findOne({ id: userId });
+    if (!user) {
+      const error = new Error('Could not find user.');
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({
+      id: user.id,
+      userId: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      rank: user.rank,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+};
+
 exports.signup = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -99,9 +125,89 @@ exports.login = async (req, res, next) => {
     );
     res.status(200).json({
       token,
+      id: loadedUser.id,
       userId: loadedUser._id.toString(),
       email: loadedUser.email,
+      name: loadedUser.name,
+      role: loadedUser.role,
+      rank: loadedUser.rank,
+      createdAt: loadedUser.createdAt,
     });
+  } catch (error) {
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    next(error);
+  }
+};
+
+exports.updateUser = (req, res, next) => {
+  const userId = req.params.userId;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error('Validation failed, invalid data.');
+    error.statusCode = 422;
+    throw error;
+  }
+  (async () => {
+    const { name, rank, location } = req.body;
+    console.log(name, rank, location);
+    try {
+      const user = await User.findOne({ id: userId });
+      if (!user) {
+        const error = new Error('Could not find user.');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (user.id !== userId) {
+        const error = new Error('Not authorized.');
+        error.statusCode = 403;
+        throw error;
+      }
+      user.name = name;
+      user.rank = rank;
+      user.location = location;
+      await user.save();
+      res.status(200).json({ message: 'User updated!', user });
+    } catch (error) {
+      if (!error.statusCode) {
+        error.statusCode = 500;
+      }
+      next(error);
+    }
+  })();
+};
+
+exports.deleteUser = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const user = await User.findOne({ id: userId });
+    if (!user) {
+      const error = new Error('Could not find user.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (user.id !== userId) {
+      const error = new Error('Not authorized.');
+      error.statusCode = 403;
+      throw error;
+    }
+    /* if (user.posts.length > 0) {
+    await Post.deleteMany({ _id: { $in: user.posts } });
+  }
+  if (user.topics.length > 0) {
+    await Topic.deleteMany({ _id: { $in: user.topics } });
+  }
+  if (user.forums.length > 0) {
+    await Forum.deleteMany({ _id: { $in: user.forums } });
+  }
+  if (user.categories.length > 0) {
+    await Category.deleteMany({ _id: { $in: user.categories } });
+  } */
+
+    await User.findOneAndDelete({ id: userId });
+
+    res.status(200).json({ message: 'User was deleted.' });
   } catch (error) {
     if (!error.statusCode) {
       error.statusCode = 500;

@@ -232,18 +232,23 @@ exports.deleteForum = async (req, res, next) => {
       throw error;
     }
     if (forum.topics.length > 0) {
-      await User.updateMany({}, { $pull: { topics: { $in: forum.topics } } });
       await Topic.deleteMany({ _id: { $in: forum.topics } });
 
       if (forum.posts.length > 0) {
-        await User.updateMany({}, { $pull: { posts: { $in: forum.posts } } });
         await Post.deleteMany({ _id: { $in: forum.posts } });
       }
     }
     await Forum.findOneAndDelete({ id: forumId });
-    const user = await User.findById(req.userId);
-    user.forums.pull(forum._id.toString());
-    await user.save();
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          forums: forum._id.toString(),
+          topics: { $in: forum.topics },
+          posts: { $in: forum.posts },
+        },
+      }
+    );
     const category = await Category.findById(forum.category.toString());
     category.forums.pull(forum._id.toString());
     await category.save();

@@ -189,13 +189,14 @@ exports.deleteTopic = async (req, res, next) => {
       throw error;
     }
     if (topic.posts.length > 0) {
-      await User.updateMany({}, { $pull: { posts: { $in: topic.posts } } });
       await Post.deleteMany({ _id: { $in: topic.posts } });
     }
     await Topic.findOneAndDelete({ id: topicId });
-    const user = await User.findById(req.userId);
-    user.topics.pull(topic._id.toString());
-    await user.save();
+    await User.updateMany(
+      {},
+      { $pull: { topics: topic._id.toString(), posts: { $in: topic.posts } } }
+    );
+
     const forum = await Forum.findById(topic.forum.toString());
     forum.topics.pull(topic._id.toString());
     await forum.save();

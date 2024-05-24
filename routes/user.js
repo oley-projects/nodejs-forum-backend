@@ -3,10 +3,13 @@ const { body } = require('express-validator');
 
 const User = require('../models/user');
 const userController = require('../controllers/user');
+const isAuth = require('../middleware/is-auth');
 
 const router = express.Router();
 
 router.get('/users/:keywords', userController.getUsers);
+
+router.get('/user/:userId', isAuth, userController.getUser);
 
 router.put(
   '/user/signup',
@@ -39,5 +42,21 @@ router.post(
   ],
   userController.login
 );
+
+router.put(
+  '/user/:userId',
+  isAuth,
+  [
+    body('name').trim().isLength({ min: 2, max: 25 }),
+    body('rank').trim().isLength({ min: 3, max: 25 }),
+    body('location')
+      .optional({ checkFalsy: true })
+      .trim()
+      .isLength({ min: 3, max: 25 }),
+  ],
+  userController.updateUser
+);
+
+router.delete('user/:userId', isAuth, userController.deleteUser);
 
 module.exports = router;

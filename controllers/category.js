@@ -379,7 +379,8 @@ exports.deleteCategory = async (req, res, next) => {
         },
       },
     ]);
-    if (!category) {
+    const { _id: id, forums, topics, posts } = category;
+    if (!id) {
       const error = new Error('Could not find category.');
       error.statusCode = 404;
       throw error;
@@ -389,31 +390,27 @@ exports.deleteCategory = async (req, res, next) => {
       error.statusCode = 403;
       throw error;
     }
-    if (category.forums.length > 0) {
-      await User.updateMany(
-        {},
-        { $pull: { forums: { $in: category.forums } } }
-      );
-      await Forum.deleteMany({ _id: { $in: category.forums } });
-      if (category.topics.length > 0) {
-        await User.updateMany(
-          {},
-          { $pull: { topics: { $in: category.topics } } }
-        );
-        await Topic.deleteMany({ _id: { $in: category.topics } });
-        if (category.posts.length > 0) {
-          await User.updateMany(
-            {},
-            { $pull: { posts: { $in: category.posts } } }
-          );
-          await Post.deleteMany({ _id: { $in: category.posts } });
+    if (forums.length > 0) {
+      await Forum.deleteMany({ _id: { $in: forums } });
+      if (topics.length > 0) {
+        await Topic.deleteMany({ _id: { $in: topics } });
+        if (posts.length > 0) {
+          await Post.deleteMany({ _id: { $in: posts } });
         }
       }
     }
-    await Category.findOneAndDelete({ id: categoryId });
-    const user = await User.findById(req.userId);
-    user.categories.pull(category._id.toString());
-    await user.save();
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          categories: id,
+          forums: { $in: forums },
+          topics: { $in: topics },
+          posts: { $in: posts },
+        },
+      }
+    );
+    await Category.findByIdAndDelete(id);
     res.status(200).json({ message: 'Category was deleted.' });
   } catch (error) {
     if (!error.statusCode) {

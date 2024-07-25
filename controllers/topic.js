@@ -36,8 +36,6 @@ exports.createTopic = (req, res, next) => {
       posts: [],
       replies: '0',
       views: '0',
-      lastPostUser: 'User',
-      lastPostCreatedAt: new Date().toLocaleString(),
     });
     try {
       await topic.save();

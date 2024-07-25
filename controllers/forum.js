@@ -38,8 +38,6 @@ exports.createForum = (req, res, next) => {
       category: category._id,
       topics: [],
       views: '0',
-      lastPostUser: 'User',
-      lastPostCreatedAt: new Date().toLocaleString(),
     });
     try {
       await forum.save();
@@ -49,7 +47,6 @@ exports.createForum = (req, res, next) => {
 
       category.forums.push(forum);
       await category.save();
-
       res.status(201).json({
         message: 'Forum created!',
         forum,
@@ -86,7 +83,14 @@ exports.getForum = async (req, res, next) => {
           skip: (currentPage - 1) * perPage,
           limit: perPage,
         },
-        populate: [{ path: 'creator', model: 'User', select: 'name' }],
+        populate: [
+          { path: 'creator', model: 'User', select: 'name' },
+          {
+            path: 'lastPost',
+            model: 'Post',
+            populate: { path: 'creator', model: 'User', select: 'name' },
+          },
+        ],
       },
     ]);
     if (!forum) {

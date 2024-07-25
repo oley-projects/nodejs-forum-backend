@@ -151,7 +151,6 @@ exports.updateUser = (req, res, next) => {
   }
   (async () => {
     const { name, rank, location } = req.body;
-    console.log(name, rank, location);
     try {
       const user = await User.findOne({ id: userId });
       if (!user) {

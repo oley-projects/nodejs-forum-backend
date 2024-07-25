@@ -64,6 +64,65 @@ exports.getCategories = async (req, res, next) => {
               },
             },
             {
+              $lookup: {
+                from: 'posts',
+                localField: 'lastPost',
+                foreignField: '_id',
+                pipeline: [
+                  {
+                    $lookup: {
+                      from: 'users',
+                      localField: 'creator',
+                      foreignField: '_id',
+                      pipeline: [
+                        {
+                          $project: {
+                            _id: 1,
+                            id: 1,
+                            name: 1,
+                          },
+                        },
+                      ],
+                      as: 'creator',
+                    },
+                  },
+                  {
+                    $lookup: {
+                      from: 'topics',
+                      localField: 'topic',
+                      foreignField: '_id',
+                      pipeline: [
+                        {
+                          $project: {
+                            _id: 1,
+                            id: 1,
+                            name: 1,
+                          },
+                        },
+                      ],
+                      as: 'topic',
+                    },
+                  },
+                  {
+                    $set: {
+                      creator: { $first: '$creator' },
+                      topic: { $first: '$topic' },
+                      createdAt: {
+                        $floor: { $divide: [{ $toLong: '$createdAt' }, 1000] },
+                      },
+                      updatedAt: {
+                        $floor: { $divide: [{ $toLong: '$updatedAt' }, 1000] },
+                      },
+                    },
+                  },
+                ],
+                as: 'lastPost',
+              },
+            },
+            {
+              $unwind: { path: '$lastPost', preserveNullAndEmptyArrays: true },
+            },
+            {
               $addFields: {
                 totalPosts: {
                   $sum: {
@@ -172,6 +231,12 @@ exports.getCategories = async (req, res, next) => {
               $set: {
                 creator: { $first: '$creator' },
                 topic: { $first: '$topic' },
+                createdAt: {
+                  $floor: { $divide: [{ $toLong: '$createdAt' }, 1000] },
+                },
+                updatedAt: {
+                  $floor: { $divide: [{ $toLong: '$updatedAt' }, 1000] },
+                },
               },
             },
           ],
@@ -209,8 +274,6 @@ exports.createCategory = (req, res, next) => {
       forums: [],
       replies: '0',
       views: '0',
-      lastPostUser: 'User',
-      lastPostCreatedAt: new Date().toLocaleString(),
     });
     try {
       const user = await User.findById(req.userId);
@@ -255,6 +318,17 @@ exports.getCategory = async (req, res, next) => {
         populate: [{ path: 'creator', model: 'User', select: 'name' }],
       },
     ]);
+    /*const category = await Category.aggregate([
+      { $match: { id: categoryId } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'creator',
+        },
+      },
+    ]);*/
     if (!category) {
       const error = new Error('Could not find category.');
       error.statusCode = 404;

@@ -65,4 +65,13 @@ userSchema.pre('save', async function () {
   this.id = userID;
 });
 
+userSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    const createdAt = returnedObject.createdAt;
+    const updatedAt = returnedObject.updatedAt;
+    returnedObject.createdAt = Date.parse(createdAt) / 1000;
+    returnedObject.updatedAt = Date.parse(updatedAt) / 1000;
+  },
+});
+
 module.exports = mongoose.model('User', userSchema);

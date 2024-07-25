@@ -21,8 +21,6 @@ const categorySchema = new Schema(
       },
     ],
     views: { type: String, required: true },
-    lastPostUser: { type: String, required: true },
-    lastPostCreatedAt: { type: String, required: true },
   },
   { timestamps: true, versionKey: false }
 );
@@ -39,8 +37,8 @@ categorySchema.set('toJSON', {
   transform: (document, returnedObject) => {
     const createdAt = returnedObject.createdAt;
     const updatedAt = returnedObject.updatedAt;
-    returnedObject.createdAt = new Date(createdAt).toLocaleString();
-    returnedObject.updatedAt = new Date(updatedAt).toLocaleString();
+    returnedObject.createdAt = Date.parse(createdAt) / 1000;
+    returnedObject.updatedAt = Date.parse(updatedAt) / 1000;
   },
 });
 

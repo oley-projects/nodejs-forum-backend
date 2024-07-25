@@ -1,7 +1,9 @@
+const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 
 const Post = require('../models/post');
 const Topic = require('../models/topic');
+const Forum = require('../models/forum');
 const User = require('../models/user');
 
 exports.getPosts = async (req, res, next) => {
@@ -51,10 +53,11 @@ exports.createPost = (req, res, next) => {
   }
   (async () => {
     const { id, name, description } = req.body;
-    let topic;
+    let topic, forum;
 
     try {
       topic = await Topic.findOne({ id });
+      forum = await Forum.findById(topic.forum.toString());
     } catch (error) {
       if (!error.statusCode) {
         error.statusCode = 500;
@@ -77,7 +80,11 @@ exports.createPost = (req, res, next) => {
       await user.save();
 
       topic.posts.push(post);
+      topic.lastPost = post._id;
       await topic.save();
+
+      forum.lastPost = post._id;
+      await forum.save();
 
       res.status(201).json({
         message: 'Post created!',
@@ -165,9 +172,70 @@ exports.deletePost = async (req, res, next) => {
     const user = await User.findById(req.userId);
     user.posts.pull(post._id.toString());
     await user.save();
+
     const topic = await Topic.findById(post.topic.toString());
-    topic.posts.pull(post._id.toString());
+    await topic.posts.pull(post._id.toString());
+
+    if (topic.lastPost.toString() === post._id.toString()) {
+      if (topic.posts.length > 0) {
+        topic.lastPost = topic.posts[topic.posts.length - 1];
+      } else {
+        topic.lastPost = '';
+      }
+    }
     await topic.save();
+
+    const forum = await Forum.findById(topic.forum.toString());
+
+    if (forum.lastPost.toString() === post._id.toString()) {
+      const [lastPost] = await Forum.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(topic.forum) } },
+        { $unwind: '$topics' },
+        {
+          $lookup: {
+            from: 'topics',
+            localField: 'topics',
+            foreignField: '_id',
+            as: 'topics',
+          },
+        },
+        { $unwind: '$topics' },
+        {
+          $lookup: {
+            from: 'posts',
+            localField: 'topics.lastPost',
+            foreignField: '_id',
+            as: 'topics.lastPost',
+          },
+        },
+        { $unwind: '$topics.lastPost' },
+        {
+          $sort: { 'topics.lastPost.createdAt': -1 },
+        },
+        {
+          $group: {
+            _id: null,
+            lastPost: { $push: '$topics.lastPost' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            lastPost: { $arrayElemAt: ['$lastPost', 0] },
+          },
+        },
+        {
+          $replaceRoot: { newRoot: { $ifNull: ['$lastPost', ''] } },
+        },
+      ]);
+      if (lastPost) {
+        forum.lastPost = lastPost._id;
+      } else {
+        delete forum.lastPost;
+      }
+      forum.save();
+    }
+
     res.status(200).json({ message: 'Post was deleted.' });
   } catch (error) {
     if (!error.statusCode) {

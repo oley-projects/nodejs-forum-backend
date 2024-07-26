@@ -13,8 +13,8 @@ const postSchema = new Schema(
       required: true,
     },
     topic: { type: Schema.Types.ObjectId, ref: 'Topic', required: true },
-    replies: { type: String, required: true },
-    views: { type: String, required: true },
+    replies: { type: Number, required: true },
+    views: { type: Number, required: true },
   },
   { timestamps: true, versionKey: false }
 );

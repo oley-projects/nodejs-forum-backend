@@ -21,7 +21,7 @@ const forumSchema = new Schema(
         ref: 'Topic',
       },
     ],
-    views: { type: String, required: true },
+    views: { type: Number, required: true },
     lastPost: { type: Schema.Types.ObjectId, ref: 'Post' },
   },
   { timestamps: true, versionKey: false }

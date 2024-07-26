@@ -37,7 +37,7 @@ exports.createForum = (req, res, next) => {
       creator: req.userId,
       category: category._id,
       topics: [],
-      views: '0',
+      views: 0,
     });
     try {
       await forum.save();
@@ -74,7 +74,10 @@ exports.getForum = async (req, res, next) => {
       perPage = limit;
     }
 
-    const forum = await Forum.findOne({ id: forumId }).populate([
+    const forum = await Forum.findOneAndUpdate(
+      { id: forumId },
+      { $inc: { views: 1 } }
+    ).populate([
       { path: 'creator', model: 'User', select: 'name' },
       {
         path: 'topics',

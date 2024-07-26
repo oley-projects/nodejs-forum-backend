@@ -34,8 +34,7 @@ exports.createTopic = (req, res, next) => {
       creator: req.userId,
       forum: forum._id,
       posts: [],
-      replies: '0',
-      views: '0',
+      views: 0,
     });
     try {
       await topic.save();
@@ -73,7 +72,10 @@ exports.getTopic = async (req, res, next) => {
       perPage = limit;
     }
 
-    const topic = await Topic.findOne({ id: topicId }).populate([
+    const topic = await Topic.findOneAndUpdate(
+      { id: topicId },
+      { $inc: { views: 1 } }
+    ).populate([
       { path: 'creator', model: 'User', select: 'name' },
       {
         path: 'posts',

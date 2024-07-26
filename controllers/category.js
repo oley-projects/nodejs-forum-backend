@@ -272,8 +272,7 @@ exports.createCategory = (req, res, next) => {
       description,
       creator: req.userId,
       forums: [],
-      replies: '0',
-      views: '0',
+      views: 0,
     });
     try {
       const user = await User.findById(req.userId);
@@ -306,7 +305,10 @@ exports.getCategory = async (req, res, next) => {
     } else {
       perPage = limit;
     }
-    const category = await Category.findOne({ id: categoryId }).populate([
+    const category = await Category.findOneAndUpdate(
+      { id: categoryId },
+      { $inc: { views: 1 } }
+    ).populate([
       { path: 'creator', model: 'User', select: 'name' },
       {
         path: 'forums',

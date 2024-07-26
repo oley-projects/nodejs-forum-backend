@@ -70,8 +70,8 @@ exports.createPost = (req, res, next) => {
       description,
       creator: req.userId,
       topic: topic._id,
-      replies: '0',
-      views: '0',
+      replies: 0,
+      views: 0,
     });
     try {
       await post.save();
@@ -103,7 +103,7 @@ exports.getPost = async (req, res, next) => {
   const postId = req.params.postId;
   try {
     const post = await (
-      await Post.findOne({ id: postId })
+      await Post.findOneAndUpdate({ id: postId }, { $inc: { views: 1 } })
     ).populated({ path: 'creator', model: 'User', select: 'name' });
     if (!post) {
       const error = new Error('Could not find post.');

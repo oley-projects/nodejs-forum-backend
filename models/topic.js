@@ -21,8 +21,7 @@ const topicSchema = new Schema(
         ref: 'Post',
       },
     ],
-    replies: { type: String, required: true },
-    views: { type: String, required: true },
+    views: { type: Number, required: true },
     lastPost: { type: Schema.Types.ObjectId, ref: 'Post' },
   },
   { timestamps: true, versionKey: false }

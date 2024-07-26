@@ -20,7 +20,7 @@ const categorySchema = new Schema(
         ref: 'Forum',
       },
     ],
-    views: { type: String, required: true },
+    views: { type: Number, required: true },
   },
   { timestamps: true, versionKey: false }
 );

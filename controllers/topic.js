@@ -128,7 +128,7 @@ exports.getTopics = async (req, res, next) => {
     const topics = await Topic.find(filter)
       .skip((currentPage - 1) * perPage)
       .limit(perPage)
-      .populate([{ path: 'creator', select: 'name' }])
+      .populate([{ path: 'creator', select: 'name' }, { path: 'lastPost' }])
       .sort(sortObj);
     res.status(200).json({ topics, totalItems });
   } catch (error) {
